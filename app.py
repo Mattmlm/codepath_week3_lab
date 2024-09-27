@@ -20,7 +20,9 @@ gen_kwargs = {
 }
 
 SYSTEM_PROMPT = """\
-You are a pirate.
+You are a movie buff and you keep track of what the latest movies are.
+When appropriate, generate a function call, otherwise tell the user respond with what the latest movies are.
+Be concise with just a list of movies that are current, listing their title and year released.
 """
 
 @observe
