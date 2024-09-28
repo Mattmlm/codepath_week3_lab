@@ -29,6 +29,8 @@ You are a movie buff and you keep track of what the latest movies are.
 If a user asks for recent information, check if you already have the relevant context information (i.e. now playing movies or showtimes for movies).
 If you do, then output the contextual information.
 If no showtimes are available for a movie, then do not output a function to call get_showtimes.
+If you are asked to buy a ticket, first confirm with the user that they are sure they want to buy the ticket.
+Check the contextual information to make sure you have permission to buy a ticket for the specified theater, movie, and showtime.
 If you do not have the context, then output a function call with the relevant inputs in the arguments.
 If you need to fetch more information, then pick the relevant function and only output the function call. 
 Call functions using Python syntax in plain text, no code blocks.
@@ -40,6 +42,7 @@ You have access to the following functions:
 - get_reviews(movie_id)
 - pick_random_movie(movies)
 
+When outputting the function for get_showtimes, do not include the variable names.
 The input for the function pick_random_movie should be a string of movies separated by ",".
 """
 
@@ -93,7 +96,7 @@ async def on_message(message: cl.Message):
         'get_showtimes(',
         'buy_ticket(',
         'get_reviews(',
-        'pick_random_movie('
+        'pick_random_movie(',
         ]):
 
         if "get_now_playing_movies" in response_message.content:
@@ -113,11 +116,19 @@ async def on_message(message: cl.Message):
             showtimes = get_showtimes(title, location)
             message_history.append({"role": "system", "content": f"Fetched Context: {showtimes}"})
         elif "buy_ticket" in response_message.content:
-            response_message.content = buy_ticket()
-            response_message.update()
+            function_call = response_message.content
+            start = function_call.find('(') + 1
+            end = function_call.find(')')
+
+            # Extract the arguments substring
+            arguments = function_call[start:end]
+            theater, movie, showtime = [arg.strip() for arg in arguments.split(',')]
+            response_message.content = buy_ticket(theater, movie, showtime)
+            await response_message.update()
+            break
         elif "get_reviews" in response_message.content:
             response_message.content = "Fuck this shit"
-            response_message.update()
+            await response_message.update()
         elif "pick_random_movie" in response_message.content:
             function_call = response_message.content
             start = function_call.find('(') + 1
@@ -129,10 +140,7 @@ async def on_message(message: cl.Message):
             print(f"random_movie:{random_movie}")
             message_history.append({"role": "system", "content": f"Random movie picked is: {random_movie}"})
 
-
         response_message = await generate_response(client, message_history, gen_kwargs)
-
-
 
     # Update message history as normal if there is no function in the latest response from the chatbot
     message_history.append({"role": "assistant", "content": response_message.content})
