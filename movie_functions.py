@@ -50,6 +50,7 @@ def get_showtimes(title, location):
     results = search.get_dict()
 
     if 'showtimes' not in results:
+        print("No showtimes")
         return f"No showtimes found for {title} in {location}."
 
     showtimes = results['showtimes'][0]
