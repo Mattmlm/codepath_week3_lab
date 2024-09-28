@@ -4,7 +4,7 @@ import chainlit as cl
 load_dotenv()
 
 # Import the function from movie_functions.py
-from movie_functions import get_now_playing_movies
+from movie_functions import *
 
 # Note: If switching to LangSmith, uncomment the following, and replace @observe with @traceable
 # from langsmith.wrappers import wrap_openai
@@ -26,7 +26,7 @@ SYSTEM_PROMPT = """\
 You are a movie buff and you keep track of what the latest movies are.
 If a user asks for recent information, check if you already have the relevant context information. 
 If you do, then output the contextual information.
-If you do not have the context, then output a function call.
+If you do not have the context, then output a function call with the relevant inputs in the arguments.
 If you need to call a function, only output the function call. 
 Call functions using Python syntax in plain text, no code blocks.
 
@@ -80,7 +80,22 @@ async def on_message(message: cl.Message):
     # Check response for functions
     if "get_now_playing_movies" in response_message.content:
         now_playing = get_now_playing_movies()
-        message_history.append({"role": "system", "content": now_playing})
+        message_history.append({"role": "system", "content": f"Fetched Context: {now_playing}"})
+        response_message = await generate_response(client, message_history, gen_kwargs)
+    elif "get_showtimes" in response_message.content:
+        function_call = response_message.content
+        start = function_call.find('(') + 1
+        end = function_call.find(')')
+
+        # Extract the arguments substring
+        arguments = function_call[start:end]
+
+        # Split the arguments by comma and strip any whitespace
+        title, location = [arg.strip() for arg in arguments.split(',')]
+        print(f"title: {title}, location: {location}")
+        showtimes = get_showtimes(title, location)
+        print(f"showtimes: {showtimes}")
+        message_history.append({"role": "system", "content": f"Fetched Context: {showtimes}"})
         response_message = await generate_response(client, message_history, gen_kwargs)
     else:
         # Update message history as normal if there is no function in the latest response from the chatbot
