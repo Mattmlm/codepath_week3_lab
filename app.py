@@ -3,6 +3,9 @@ import chainlit as cl
 
 load_dotenv()
 
+# Import the function from movie_functions.py
+from movie_functions import get_now_playing_movies
+
 # Note: If switching to LangSmith, uncomment the following, and replace @observe with @traceable
 # from langsmith.wrappers import wrap_openai
 # from langsmith import traceable
@@ -21,8 +24,15 @@ gen_kwargs = {
 
 SYSTEM_PROMPT = """\
 You are a movie buff and you keep track of what the latest movies are.
-When appropriate, generate a function call, otherwise tell the user respond with what the latest movies are.
-Be concise with just a list of movies that are current, listing their title and year released.
+If a user asks for recent information, output a function call and the system add to the context.
+If you need to call a function, only output the function call. 
+Call functions using Python syntax in plain text, no code blocks.
+
+You have access to the following functions:
+- get_now_playing_movies()
+- get_showtimes(title, location)
+- buy_ticket(theater, movie, showtime)
+- get_reviews(movie_id)
 """
 
 @observe
@@ -42,9 +52,16 @@ async def generate_response(client, message_history, gen_kwargs):
             await response_message.stream_token(token)
     
     await response_message.update()
+    if "get_now_playing_movies" in response_message.content:
+        now_playing = get_now_playing_movies()
+        print(f"now_playing: {now_playing}")
+        response_message.content = now_playing
+        await response_message.update()
+
 
     return response_message
 
+        # now_playing_movies = await get_now_playing_movies()
 @cl.on_message
 @observe
 async def on_message(message: cl.Message):
